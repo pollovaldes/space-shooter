@@ -3,8 +3,8 @@
 // ============================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = 1200;
-canvas.height = 800;
+canvas.width = 800;
+canvas.height = 600;
 
 // ============================================
 // VARIABLES DEL JUEGO
@@ -31,6 +31,9 @@ const enemyWidth = 40;
 const enemyHeight = 40;
 const enemyPadding = 20;
 const enemyOffsetTop = 50;
+// FEATURE: Enemy Movement
+let enemyDirection = 1;
+let enemySpeed = 2;
 
 // Balas
 let bullets = [];
@@ -91,6 +94,32 @@ function updatePlayer() {
     }
     if (player.moveRight && player.x < canvas.width - player.width) {
         player.x += player.speed;
+    }
+}
+
+// ============================================
+// FEATURE: ACTUALIZAR ENEMIGOS
+// ============================================
+function updateEnemies() {
+    let changeDirection = false;
+    
+    enemies.forEach(enemy => {
+        if (enemy.alive) {
+            enemy.x += enemySpeed * enemyDirection;
+            
+            if (enemy.x <= 0 || enemy.x + enemy.width >= canvas.width) {
+                changeDirection = true;
+            }
+        }
+    });
+    
+    if (changeDirection) {
+        enemyDirection *= -1;
+        enemies.forEach(enemy => {
+            if (enemy.alive) {
+                enemy.y += 20;
+            }
+        });
     }
 }
 
@@ -181,6 +210,7 @@ function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     updatePlayer();
+    updateEnemies(); // FEATURE: Enemigos se mueven
     updateBullets();
     checkCollisions();
     
@@ -197,3 +227,4 @@ function gameLoop() {
 // ============================================
 createEnemies();
 gameLoop();
+
