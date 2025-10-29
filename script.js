@@ -6,6 +6,12 @@ const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 600;
 
+// FEATURE: Sound Effects
+const shootSound = new Audio('shoot.mp3');
+const explosionSound = new Audio('explosion.mp3');
+shootSound.volume = 0.3;
+explosionSound.volume = 0.4;
+
 // ============================================
 // VARIABLES DEL JUEGO
 // ============================================
@@ -31,9 +37,6 @@ const enemyWidth = 40;
 const enemyHeight = 40;
 const enemyPadding = 20;
 const enemyOffsetTop = 50;
-// FEATURE: Enemy Movement
-let enemyDirection = 1;
-let enemySpeed = 2;
 
 // Balas
 let bullets = [];
@@ -83,6 +86,9 @@ function shootBullet() {
         width: bulletWidth,
         height: bulletHeight
     });
+    // FEATURE: Reproducir sonido de disparo
+    shootSound.currentTime = 0;
+    shootSound.play().catch(e => console.log('Audio play failed'));
 }
 
 // ============================================
@@ -94,32 +100,6 @@ function updatePlayer() {
     }
     if (player.moveRight && player.x < canvas.width - player.width) {
         player.x += player.speed;
-    }
-}
-
-// ============================================
-// FEATURE: ACTUALIZAR ENEMIGOS
-// ============================================
-function updateEnemies() {
-    let changeDirection = false;
-    
-    enemies.forEach(enemy => {
-        if (enemy.alive) {
-            enemy.x += enemySpeed * enemyDirection;
-            
-            if (enemy.x <= 0 || enemy.x + enemy.width >= canvas.width) {
-                changeDirection = true;
-            }
-        }
-    });
-    
-    if (changeDirection) {
-        enemyDirection *= -1;
-        enemies.forEach(enemy => {
-            if (enemy.alive) {
-                enemy.y += 20;
-            }
-        });
     }
 }
 
@@ -149,6 +129,9 @@ function checkCollisions() {
                 enemy.alive = false;
                 bullets.splice(bIndex, 1);
                 score += 10;
+                // FEATURE: Reproducir sonido de explosión
+                explosionSound.currentTime = 0;
+                explosionSound.play().catch(e => console.log('Audio play failed'));
             }
         });
     });
@@ -210,7 +193,6 @@ function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     updatePlayer();
-    updateEnemies(); // FEATURE: Enemigos se mueven
     updateBullets();
     checkCollisions();
     
