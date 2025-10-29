@@ -6,17 +6,13 @@ const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 600;
 
-// FEATURE: Sound Effects
-const shootSound = new Audio('shoot.mp3');
-const explosionSound = new Audio('explosion.mp3');
-shootSound.volume = 0.3;
-explosionSound.volume = 0.4;
-
 // ============================================
 // VARIABLES DEL JUEGO
 // ============================================
 let score = 0;
 let gameRunning = true;
+// FEATURE: Game Over
+let gameOver = false;
 
 // Player
 const player = {
@@ -69,6 +65,10 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') player.moveLeft = true;
     if (e.key === 'ArrowRight') player.moveRight = true;
     if (e.key === ' ') shootBullet();
+    // FEATURE: Reiniciar juego con Enter
+    if (e.key === 'Enter' && gameOver) {
+        restartGame();
+    }
 });
 
 document.addEventListener('keyup', (e) => {
@@ -80,15 +80,13 @@ document.addEventListener('keyup', (e) => {
 // DISPARAR BALA
 // ============================================
 function shootBullet() {
+    if (gameOver) return;
     bullets.push({
         x: player.x + player.width / 2 - bulletWidth / 2,
         y: player.y,
         width: bulletWidth,
         height: bulletHeight
     });
-    // FEATURE: Reproducir sonido de disparo
-    shootSound.currentTime = 0;
-    shootSound.play().catch(e => console.log('Audio play failed'));
 }
 
 // ============================================
@@ -129,12 +127,41 @@ function checkCollisions() {
                 enemy.alive = false;
                 bullets.splice(bIndex, 1);
                 score += 10;
-                // FEATURE: Reproducir sonido de explosión
-                explosionSound.currentTime = 0;
-                explosionSound.play().catch(e => console.log('Audio play failed'));
             }
         });
     });
+}
+
+// ============================================
+// FEATURE: VERIFICAR GAME OVER
+// ============================================
+function checkGameOver() {
+    enemies.forEach(enemy => {
+        if (enemy.alive && enemy.y + enemy.height >= player.y) {
+            gameOver = true;
+            gameRunning = false;
+        }
+    });
+    
+    // Victoria si todos muertos
+    const allDead = enemies.every(enemy => !enemy.alive);
+    if (allDead) {
+        gameOver = true;
+        gameRunning = false;
+    }
+}
+
+// ============================================
+// FEATURE: REINICIAR JUEGO
+// ============================================
+function restartGame() {
+    score = 0;
+    gameOver = false;
+    gameRunning = true;
+    bullets = [];
+    player.x = canvas.width / 2 - 25;
+    createEnemies();
+    gameLoop();
 }
 
 // ============================================
@@ -185,6 +212,31 @@ function drawScore() {
 }
 
 // ============================================
+// FEATURE: DIBUJAR GAME OVER
+// ============================================
+function drawGameOver() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '60px Arial';
+    ctx.textAlign = 'center';
+    
+    const allDead = enemies.every(enemy => !enemy.alive);
+    if (allDead) {
+        ctx.fillText('YOU WIN!', canvas.width / 2, canvas.height / 2 - 40);
+    } else {
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
+    }
+    
+    ctx.font = '30px Arial';
+    ctx.fillText('Score: ' + score, canvas.width / 2, canvas.height / 2 + 20);
+    ctx.font = '20px Arial';
+    ctx.fillText('Press ENTER to restart', canvas.width / 2, canvas.height / 2 + 70);
+    ctx.textAlign = 'left';
+}
+
+// ============================================
 // GAME LOOP
 // ============================================
 function gameLoop() {
@@ -195,13 +247,18 @@ function gameLoop() {
     updatePlayer();
     updateBullets();
     checkCollisions();
+    checkGameOver(); // FEATURE: Verificar game over
     
     drawPlayer();
     drawEnemies();
     drawBullets();
     drawScore();
     
-    requestAnimationFrame(gameLoop);
+    if (gameOver) {
+        drawGameOver(); // FEATURE: Mostrar pantalla de game over
+    } else {
+        requestAnimationFrame(gameLoop);
+    }
 }
 
 // ============================================
@@ -209,4 +266,5 @@ function gameLoop() {
 // ============================================
 createEnemies();
 gameLoop();
+
 
