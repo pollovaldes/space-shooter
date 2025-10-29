@@ -1,3 +1,4 @@
+
 // ============================================
 // CONFIGURACIÓN INICIAL
 // ============================================
@@ -11,6 +12,8 @@ canvas.height = 600;
 // ============================================
 let score = 0;
 let gameRunning = true;
+// FEATURE: Lives System
+let lives = 3;
 
 // Player
 const player = {
@@ -38,8 +41,9 @@ const bulletWidth = 4;
 const bulletHeight = 15;
 const bulletSpeed = 8;
 
-// FEATURE: Particles
-let particles = [];
+// FEATURE: Enemy Bullets
+let enemyBullets = [];
+let enemyShootTimer = 0;
 
 // ============================================
 // INICIALIZAR ENEMIGOS
@@ -109,32 +113,47 @@ function updateBullets() {
 }
 
 // ============================================
-// FEATURE: CREAR PARTÍCULAS
+// FEATURE: ENEMIGOS DISPARAN
 // ============================================
-function createParticles(x, y) {
-    for (let i = 0; i < 15; i++) {
-        particles.push({
-            x: x,
-            y: y,
-            vx: (Math.random() - 0.5) * 6,
-            vy: (Math.random() - 0.5) * 6,
-            life: 1,
-            size: Math.random() * 4 + 2
-        });
+function enemyShoot() {
+    enemyShootTimer++;
+    if (enemyShootTimer > 120) {
+        const aliveEnemies = enemies.filter(e => e.alive);
+        if (aliveEnemies.length > 0) {
+            const shooter = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+            enemyBullets.push({
+                x: shooter.x + shooter.width / 2 - 3,
+                y: shooter.y + shooter.height,
+                width: 6,
+                height: 12
+            });
+        }
+        enemyShootTimer = 0;
     }
 }
 
 // ============================================
-// FEATURE: ACTUALIZAR PARTÍCULAS
+// FEATURE: ACTUALIZAR BALAS ENEMIGAS
 // ============================================
-function updateParticles() {
-    particles = particles.filter(p => p.life > 0);
+function updateEnemyBullets() {
+    enemyBullets = enemyBullets.filter(b => b.y < canvas.height);
     
-    particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.02;
-        p.vy += 0.2; // gravedad
+    enemyBullets.forEach(bullet => {
+        bullet.y += 5;
+        
+        // Colisión con jugador
+        if (bullet.x < player.x + player.width &&
+            bullet.x + bullet.width > player.x &&
+            bullet.y < player.y + player.height &&
+            bullet.y + bullet.height > player.y) {
+            
+            lives--;
+            enemyBullets.splice(enemyBullets.indexOf(bullet), 1);
+            
+            if (lives <= 0) {
+                gameRunning = false;
+            }
+        }
     });
 }
 
@@ -153,8 +172,6 @@ function checkCollisions() {
                 enemy.alive = false;
                 bullets.splice(bIndex, 1);
                 score += 10;
-                // FEATURE: Crear partículas en la posición del enemigo
-                createParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
             }
         });
     });
@@ -196,18 +213,12 @@ function drawBullets() {
     bullets.forEach(bullet => {
         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     });
-}
-
-// ============================================
-// FEATURE: DIBUJAR PARTÍCULAS
-// ============================================
-function drawParticles() {
-    particles.forEach(p => {
-        ctx.globalAlpha = p.life;
-        ctx.fillStyle = '#ff6600';
-        ctx.fillRect(p.x, p.y, p.size, p.size);
+    
+    // FEATURE: Balas enemigas
+    ctx.fillStyle = '#ff00ff';
+    enemyBullets.forEach(bullet => {
+        ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     });
-    ctx.globalAlpha = 1;
 }
 
 // ============================================
@@ -220,6 +231,22 @@ function drawScore() {
 }
 
 // ============================================
+// FEATURE: DIBUJAR VIDAS
+// ============================================
+function drawLives() {
+    ctx.fillStyle = '#ff0000';
+    ctx.font = '20px Arial';
+    ctx.fillText('Lives: ', canvas.width - 150, 30);
+    
+    // Dibujar corazones
+    for (let i = 0; i < lives; i++) {
+        ctx.fillStyle = '#ff0000';
+        ctx.font = '25px Arial';
+        ctx.fillText('♥', canvas.width - 80 + (i * 25), 32);
+    }
+}
+
+// ============================================
 // GAME LOOP
 // ============================================
 function gameLoop() {
@@ -229,14 +256,15 @@ function gameLoop() {
     
     updatePlayer();
     updateBullets();
-    updateParticles(); // FEATURE: Actualizar partículas
+    enemyShoot(); // FEATURE: Enemigos disparan
+    updateEnemyBullets(); // FEATURE: Actualizar balas enemigas
     checkCollisions();
     
     drawPlayer();
     drawEnemies();
     drawBullets();
-    drawParticles(); // FEATURE: Dibujar partículas
     drawScore();
+    drawLives(); // FEATURE: Mostrar vidas
     
     requestAnimationFrame(gameLoop);
 }
@@ -246,3 +274,4 @@ function gameLoop() {
 // ============================================
 createEnemies();
 gameLoop();
+
