@@ -11,8 +11,6 @@ canvas.height = 600;
 // ============================================
 let score = 0;
 let gameRunning = true;
-// FEATURE: Game Over
-let gameOver = false;
 
 // Player
 const player = {
@@ -40,6 +38,9 @@ const bulletWidth = 4;
 const bulletHeight = 15;
 const bulletSpeed = 8;
 
+// FEATURE: Particles
+let particles = [];
+
 // ============================================
 // INICIALIZAR ENEMIGOS
 // ============================================
@@ -65,10 +66,6 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') player.moveLeft = true;
     if (e.key === 'ArrowRight') player.moveRight = true;
     if (e.key === ' ') shootBullet();
-    // FEATURE: Reiniciar juego con Enter
-    if (e.key === 'Enter' && gameOver) {
-        restartGame();
-    }
 });
 
 document.addEventListener('keyup', (e) => {
@@ -80,7 +77,6 @@ document.addEventListener('keyup', (e) => {
 // DISPARAR BALA
 // ============================================
 function shootBullet() {
-    if (gameOver) return;
     bullets.push({
         x: player.x + player.width / 2 - bulletWidth / 2,
         y: player.y,
@@ -113,6 +109,36 @@ function updateBullets() {
 }
 
 // ============================================
+// FEATURE: CREAR PARTÍCULAS
+// ============================================
+function createParticles(x, y) {
+    for (let i = 0; i < 15; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            life: 1,
+            size: Math.random() * 4 + 2
+        });
+    }
+}
+
+// ============================================
+// FEATURE: ACTUALIZAR PARTÍCULAS
+// ============================================
+function updateParticles() {
+    particles = particles.filter(p => p.life > 0);
+    
+    particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+        p.vy += 0.2; // gravedad
+    });
+}
+
+// ============================================
 // DETECTAR COLISIONES
 // ============================================
 function checkCollisions() {
@@ -127,41 +153,11 @@ function checkCollisions() {
                 enemy.alive = false;
                 bullets.splice(bIndex, 1);
                 score += 10;
+                // FEATURE: Crear partículas en la posición del enemigo
+                createParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
             }
         });
     });
-}
-
-// ============================================
-// FEATURE: VERIFICAR GAME OVER
-// ============================================
-function checkGameOver() {
-    enemies.forEach(enemy => {
-        if (enemy.alive && enemy.y + enemy.height >= player.y) {
-            gameOver = true;
-            gameRunning = false;
-        }
-    });
-    
-    // Victoria si todos muertos
-    const allDead = enemies.every(enemy => !enemy.alive);
-    if (allDead) {
-        gameOver = true;
-        gameRunning = false;
-    }
-}
-
-// ============================================
-// FEATURE: REINICIAR JUEGO
-// ============================================
-function restartGame() {
-    score = 0;
-    gameOver = false;
-    gameRunning = true;
-    bullets = [];
-    player.x = canvas.width / 2 - 25;
-    createEnemies();
-    gameLoop();
 }
 
 // ============================================
@@ -203,37 +199,24 @@ function drawBullets() {
 }
 
 // ============================================
+// FEATURE: DIBUJAR PARTÍCULAS
+// ============================================
+function drawParticles() {
+    particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = '#ff6600';
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+    });
+    ctx.globalAlpha = 1;
+}
+
+// ============================================
 // DIBUJAR SCORE
 // ============================================
 function drawScore() {
     ctx.fillStyle = '#ffffff';
     ctx.font = '20px Arial';
     ctx.fillText('Score: ' + score, 20, 30);
-}
-
-// ============================================
-// FEATURE: DIBUJAR GAME OVER
-// ============================================
-function drawGameOver() {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '60px Arial';
-    ctx.textAlign = 'center';
-    
-    const allDead = enemies.every(enemy => !enemy.alive);
-    if (allDead) {
-        ctx.fillText('YOU WIN!', canvas.width / 2, canvas.height / 2 - 40);
-    } else {
-        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
-    }
-    
-    ctx.font = '30px Arial';
-    ctx.fillText('Score: ' + score, canvas.width / 2, canvas.height / 2 + 20);
-    ctx.font = '20px Arial';
-    ctx.fillText('Press ENTER to restart', canvas.width / 2, canvas.height / 2 + 70);
-    ctx.textAlign = 'left';
 }
 
 // ============================================
@@ -246,19 +229,16 @@ function gameLoop() {
     
     updatePlayer();
     updateBullets();
+    updateParticles(); // FEATURE: Actualizar partículas
     checkCollisions();
-    checkGameOver(); // FEATURE: Verificar game over
     
     drawPlayer();
     drawEnemies();
     drawBullets();
+    drawParticles(); // FEATURE: Dibujar partículas
     drawScore();
     
-    if (gameOver) {
-        drawGameOver(); // FEATURE: Mostrar pantalla de game over
-    } else {
-        requestAnimationFrame(gameLoop);
-    }
+    requestAnimationFrame(gameLoop);
 }
 
 // ============================================
@@ -266,5 +246,3 @@ function gameLoop() {
 // ============================================
 createEnemies();
 gameLoop();
-
-
